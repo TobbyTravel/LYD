@@ -117,9 +117,9 @@
 <body>
 
     <div class="container">
-        <!-- Estimert Kunde Kapasitet Section -->
+        <!-- Estimert samtale kapasitet Section -->
         <div class="form-container">
-            <h1>Estimert Kunde Kapasitet</h1>
+            <h1>Estimert samtale kapasitet</h1>
             <form id="inputForm">
                 <label for="closingTime">Stengetid (HH:MM):</label>
                 <input type="time" id="closingTime" value="22:00" required>
@@ -130,14 +130,14 @@
                 <label for="customerRate">Samtalesnitt per time per person:</label>
                 <input type="number" id="customerRate" min="1" value="4" required>
 
-                <button type="submit">Generer Graf</button>
+                <button type="submit">Generer</button>
             </form>
             <div id="currentTime">Nåværende tid: </div>
             <canvas id="capacityGraph"></canvas>
 
             <!-- Estimert Kapasitet Output -->
             <div class="result-section">
-                <h2>Estimert Kapasitet Resultat</h2>
+                <h2>Resultat</h2>
                 <div id="estimertResult" class="result"></div>
             </div>
         </div>
@@ -147,19 +147,19 @@
 
         <!-- WFM Samtale Kalkulator Section -->
         <div class="form-container">
-            <h1>Beta! Basert på WFM data</h1>
-            <p>Lim inn data fra wfm:</p>
+            <h1>Basert på WFM data</h1>
+            <p>Lim inn data fra WFM:</p>
             
             <textarea id="inputData" rows="10" placeholder="Lim inn her..."></textarea>
             
             <label for="samtalesnitt">Samtalesnitt per time:</label>
             <input type="number" id="samtalesnitt" value="4">
             
-            <button onclick="parseData()">Generer svar</button>
+            <button onclick="parseData()">Generer</button>
             
             <!-- WFM Output -->
             <div class="result-section">
-                <h2>WFM Samtale Kalkulator Resultat</h2>
+                <h2>Resultat</h2>
                 <div id="wfmResult" class="result"></div>
             </div>
         </div>
@@ -223,7 +223,7 @@
                     labels,
                     datasets: [
                         {
-                            label: "Estimert Kunde Kapasitet",
+                            label: "Estimert Kapasitet",
                             data,
                             borderColor: "rgba(75, 192, 192, 1)",
                             backgroundColor: "rgba(75, 192, 192, 0.2)",
@@ -234,7 +234,7 @@
             });
 
             // Display results
-            document.getElementById("estimertResult").innerHTML = `Tid til stengning: ${timeUntilClose.toFixed(1)} timer<br>Aktuell kapasitet: ${capacityData[0]?.capacity || 0} kunder`;
+            document.getElementById("estimertResult").innerHTML = `Tid til stengt: ${timeUntilClose.toFixed(1)} timer<br>Gjenværende samtale kapasitet før stengetid:: ${capacityData[0]?.capacity || 0} kunder`;
         });
 
         // WFM Samtale Kalkulator Logic
