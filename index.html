@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Estimert antall samtale som kan håndteres før stengetid</title>
+    <title>Estimert Kapasitet & Samtale Kalkulator</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -13,15 +13,29 @@
         }
 
         .container {
-            max-width: 800px;
+            max-width: 1200px;
             margin: 50px auto;
             padding: 20px;
             background: white;
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
         }
 
         h1 {
+            text-align: center;
+            width: 100%;
+        }
+
+        .form-container {
+            flex: 1;
+            min-width: 300px;
+            max-width: 48%;
+        }
+
+        .form-container h2 {
             text-align: center;
         }
 
@@ -36,7 +50,7 @@
             font-weight: bold;
         }
 
-        input, button {
+        input, button, textarea {
             padding: 10px;
             border: 1px solid #ccc;
             border-radius: 4px;
@@ -58,6 +72,17 @@
             max-width: 100%;
         }
 
+        .result-section {
+            margin-top: 20px;
+        }
+
+        .result {
+            padding: 10px;
+            background-color: #e2e2e2;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
         #credits {
             text-align: center;
             font-size: 12px;
@@ -68,31 +93,84 @@
             font-weight: bold;
             margin-top: 10px;
         }
+
+        .divider {
+            height: 2px;
+            background-color: #ddd;
+            margin: 20px 0;
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+                padding: 10px;
+            }
+            .form-container {
+                max-width: 100%;
+                margin-bottom: 30px;
+            }
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
+
     <div class="container">
-        <h1>Estimert Kunde Kapasitet</h1>
-        <form id="inputForm">
-            <label for="closingTime">Stengetid (HH:MM):</label>
-            <input type="time" id="closingTime" value="22:00" required>
+        <!-- Estimert Kunde Kapasitet Section -->
+        <div class="form-container">
+            <h1>Estimert Kunde Kapasitet</h1>
+            <form id="inputForm">
+                <label for="closingTime">Stengetid (HH:MM):</label>
+                <input type="time" id="closingTime" value="22:00" required>
+                
+                <label for="peopleAtWork">Antall personer på jobb:</label>
+                <input type="number" id="peopleAtWork" min="1" value="10" required>
+
+                <label for="customerRate">Samtalesnitt per time per person:</label>
+                <input type="number" id="customerRate" min="1" value="4" required>
+
+                <button type="submit">Generer Graf</button>
+            </form>
+            <div id="currentTime">Nåværende tid: </div>
+            <canvas id="capacityGraph"></canvas>
+
+            <!-- Estimert Kapasitet Output -->
+            <div class="result-section">
+                <h2>Estimert Kapasitet Resultat</h2>
+                <div id="estimertResult" class="result"></div>
+            </div>
+        </div>
+
+        <!-- Divider between the two sections -->
+        <div class="divider"></div>
+
+        <!-- WFM Samtale Kalkulator Section -->
+        <div class="form-container">
+            <h1>Beta! Basert på WFM data</h1>
+            <p>Lim inn data fra wfm:</p>
             
-            <label for="peopleAtWork">Antall personer på jobb:</label>
-            <input type="number" id="peopleAtWork" min="1" value="10" required>
+            <textarea id="inputData" rows="10" placeholder="Lim inn her..."></textarea>
+            
+            <label for="samtalesnitt">Samtalesnitt per time:</label>
+            <input type="number" id="samtalesnitt" value="4">
+            
+            <button onclick="parseData()">Generer svar</button>
+            
+            <!-- WFM Output -->
+            <div class="result-section">
+                <h2>WFM Samtale Kalkulator Resultat</h2>
+                <div id="wfmResult" class="result"></div>
+            </div>
+        </div>
+    </div>
 
-            <label for="customerRate">Samtalesnitt per time per person:</label>
-            <input type="number" id="customerRate" min="1" value="4" required>
-
-            <button type="submit">Generer Graf</button>
-        </form>
-        <div id="currentTime">Nåværende tid: </div>
-        <canvas id="capacityGraph"></canvas>
-        <div id="result"></div>
+    <div id="credits">
+        <p>Credits: Tobby</p>
     </div>
 
     <script>
-        // Function to display the current time
+        // Function to display the current time for the first section
         function updateCurrentTime() {
             const currentTimeElement = document.getElementById('currentTime');
             const now = new Date();
@@ -102,12 +180,11 @@
             currentTimeElement.textContent = `Nåværende tid: ${timeString}`;
         }
 
-        // Update the current time every minute
+        // Update the current time every minute for the first section
         setInterval(updateCurrentTime, 60000);
         updateCurrentTime(); // Initial call to display time immediately
-    </script>
 
-    <script>
+        // Estimert Kapasitet Logic
         document.getElementById("inputForm").addEventListener("submit", function (event) {
             event.preventDefault();
 
@@ -157,14 +234,59 @@
             });
 
             // Display results
-            document.getElementById("result").innerHTML = `Tid til stengning: ${timeUntilClose.toFixed(1)} timer<br>Aktuell kapasitet: ${
-                capacityData[0]?.capacity || 0
-            } kunder`;
+            document.getElementById("estimertResult").innerHTML = `Tid til stengning: ${timeUntilClose.toFixed(1)} timer<br>Aktuell kapasitet: ${capacityData[0]?.capacity || 0} kunder`;
         });
+
+        // WFM Samtale Kalkulator Logic
+        function parseData() {
+            const inputData = document.getElementById('inputData').value;
+            const regex = /131840_Telefon\s+(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})/g;
+            let totalMinutes = 0;
+            let match;
+
+            const currentTime = new Date(); // Get current local time
+            const currentMinutes = currentTime.getMinutes();
+            const currentHours = currentTime.getHours();
+            const currentDate = currentTime.toDateString(); // Used to compare only date and time
+
+            // Loop through all matching time intervals
+            while ((match = regex.exec(inputData)) !== null) {
+                const startTime = match[1];
+                const endTime = match[2];
+
+                // Convert times to Date objects for comparison
+                const start = new Date(currentDate + ' ' + startTime);  // Use current date and start time
+                const end = new Date(currentDate + ' ' + endTime);      // Use current date and end time
+
+                // Only count intervals that have not passed yet
+                if (end > currentTime) {
+                    // If the start time has already passed today, use current time as the start
+                    if (start <= currentTime) {
+                        start.setHours(currentHours);
+                        start.setMinutes(currentMinutes);
+                    }
+
+                    // Calculate difference in minutes
+                    const diff = (end - start) / (1000 * 60); // convert ms to minutes
+                    if (diff > 0) totalMinutes += diff;
+                }
+            }
+
+            // Convert total minutes to hours and minutes
+            const hours = Math.floor(totalMinutes / 60);
+            const minutes = totalMinutes % 60;
+
+            // Get the input value for "samtalesnitt per time"
+            const samtalesnitt = parseFloat(document.getElementById('samtalesnitt').value) || 0;
+
+            // Calculate total samtale kapasitet
+            const totalSamtaleKapasitet = hours * samtalesnitt;
+
+            // Display result
+            document.getElementById('wfmResult').textContent = `Gjenværende arbeidstimer 131840_Telefon: ${hours} hours and ${minutes} minutes.
+Gjenværende samtale kapasitet før stengetid: ${totalSamtaleKapasitet} calls.`;
+        }
     </script>
 
-    <div id="credits">
-        <p>Credits: Tobby</p>
-    </div>
 </body>
 </html>
