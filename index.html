@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estimert antall samtale som kan håndteres før stengetid</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        label {
+            font-weight: bold;
+        }
+
+        input, button {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        canvas {
+            display: block;
+            margin: 0 auto;
+            max-width: 100%;
+        }
+
+        #credits {
+            text-align: center;
+            font-size: 12px;
+            margin-top: 20px;
+        }
+
+        #currentTime {
+            font-weight: bold;
+            margin-top: 10px;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Estimert Kunde Kapasitet</h1>
+        <form id="inputForm">
+            <label for="closingTime">Stengetid (HH:MM):</label>
+            <input type="time" id="closingTime" value="22:00" required>
+            
+            <label for="peopleAtWork">Antall personer på jobb:</label>
+            <input type="number" id="peopleAtWork" min="1" value="10" required>
+
+            <label for="customerRate">Samtalesnitt per time per person:</label>
+            <input type="number" id="customerRate" min="1" value="4" required>
+
+            <button type="submit">Generer Graf</button>
+        </form>
+        <div id="currentTime">Nåværende tid: </div>
+        <canvas id="capacityGraph"></canvas>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        // Function to display the current time
+        function updateCurrentTime() {
+            const currentTimeElement = document.getElementById('currentTime');
+            const now = new Date();
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            const timeString = `${hours}:${minutes}`;
+            currentTimeElement.textContent = `Nåværende tid: ${timeString}`;
+        }
+
+        // Update the current time every minute
+        setInterval(updateCurrentTime, 60000);
+        updateCurrentTime(); // Initial call to display time immediately
+    </script>
+
+    <script>
+        document.getElementById("inputForm").addEventListener("submit", function (event) {
+            event.preventDefault();
+
+            // Get inputs
+            const closingTime = document.getElementById("closingTime").value;
+            const peopleAtWork = parseInt(document.getElementById("peopleAtWork").value);
+            const customerRate = parseInt(document.getElementById("customerRate").value);
+
+            // Calculate time until closing
+            const now = new Date();
+            const closing = new Date();
+            const [hours, minutes] = closingTime.split(":").map(Number);
+            closing.setHours(hours, minutes, 0);
+
+            const timeUntilClose = Math.max((closing - now) / (1000 * 60 * 60), 0); // Convert ms to hours
+
+            // Calculate customer capacity over time
+            const capacityData = [];
+            for (let t = 0; t <= timeUntilClose; t += 0.5) {
+                capacityData.push({ time: new Date(now.getTime() + t * 60 * 60 * 1000), capacity: Math.round((timeUntilClose - t) * peopleAtWork * customerRate) });
+            }
+
+            // Render graph
+            const ctx = document.getElementById("capacityGraph").getContext("2d");
+            const labels = capacityData.map((point) => {
+                const hours = point.time.getHours().toString().padStart(2, '0');
+                const minutes = point.time.getMinutes().toString().padStart(2, '0');
+                return `${hours}:${minutes}`;
+            });
+            const data = capacityData.map((point) => point.capacity);
+
+            if (window.myChart) window.myChart.destroy(); // Clear previous graph
+            window.myChart = new Chart(ctx, {
+                type: "line",
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: "Estimert Kunde Kapasitet",
+                            data,
+                            borderColor: "rgba(75, 192, 192, 1)",
+                            backgroundColor: "rgba(75, 192, 192, 0.2)",
+                            borderWidth: 2,
+                        },
+                    ],
+                },
+            });
+
+            // Display results
+            document.getElementById("result").innerHTML = `Tid til stengning: ${timeUntilClose.toFixed(1)} timer<br>Aktuell kapasitet: ${
+                capacityData[0]?.capacity || 0
+            } kunder`;
+        });
+    </script>
+
+    <div id="credits">
+        <p>Credits: Tobby</p>
+    </div>
+</body>
+</html>
